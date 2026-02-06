@@ -72,7 +72,7 @@ const FormResponses = () => {
     // Memoize chart data to improve performance
     const processedData = useMemo(() => {
         if (!form || !responses.length) return {};
-
+ 
         const data = {};
         form.questions.forEach(q => {
             if (['mcq', 'dropdown', 'checkbox'].includes(q.type)) {

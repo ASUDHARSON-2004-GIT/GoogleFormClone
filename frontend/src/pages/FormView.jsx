@@ -20,14 +20,22 @@ const FormView = () => {
     const [loading, setLoading] = useState(true);
     const [answers, setAnswers] = useState({});
     const [flagged, setFlagged] = useState(new Set());
+    const [missing, setMissing] = useState(new Set());
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
+    const hasIncremented = useRef(false);
     const questionRefs = useRef([]);
 
     useEffect(() => {
         const fetchForm = async () => {
             try {
-                const res = await api.get(`/forms/${id}?incrementView=true`);
+                let url = `/forms/${id}`;
+                if (!hasIncremented.current) {
+                    url += '?incrementView=true';
+                    hasIncremented.current = true;
+                }
+
+                const res = await api.get(url);
                 setForm(res.data);
             } catch (error) {
                 console.error(error);
@@ -41,6 +49,13 @@ const FormView = () => {
 
     const handleAnswerChange = (qId, value) => {
         setAnswers(prev => ({ ...prev, [qId]: value }));
+        if (missing.has(qId)) {
+            setMissing(prev => {
+                const next = new Set(prev);
+                next.delete(qId);
+                return next;
+            });
+        }
     };
 
     const toggleFlag = (qId) => {
@@ -56,7 +71,36 @@ const FormView = () => {
         questionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
 
+    const validateForm = () => {
+        const missingQs = new Set();
+        let firstMissingIdx = -1;
+
+        form.questions.forEach((q, idx) => {
+            const qId = q._id || q.id;
+            const answer = answers[qId];
+
+            const isEmpty = answer === undefined || answer === null ||
+                (typeof answer === 'string' && answer.trim() === '') ||
+                (Array.isArray(answer) && answer.length === 0);
+
+            if (q.required && isEmpty) {
+                missingQs.add(qId);
+                if (firstMissingIdx === -1) firstMissingIdx = idx;
+            }
+        });
+
+        setMissing(missingQs);
+
+        if (missingQs.size > 0) {
+            scrollToQuestion(firstMissingIdx);
+            return false;
+        }
+        return true;
+    };
+
     const submitForm = async () => {
+        if (!validateForm()) return;
+
         try {
             const answersArray = Object.keys(answers).map(key => ({
                 questionId: key,
@@ -70,7 +114,12 @@ const FormView = () => {
             setSubmitted(true);
         } catch (error) {
             console.error(error);
-            alert('Failed to submit. Please check your connection.');
+            if (error.response?.data?.missingFields) {
+                setMissing(new Set(error.response.data.missingFields));
+                alert('Please fill out all required fields.');
+            } else {
+                alert('Failed to submit. Please check your connection.');
+            }
         }
     };
 
@@ -154,13 +203,24 @@ const FormView = () => {
                             <div
                                 key={qId}
                                 ref={el => questionRefs.current[idx] = el}
-                                className={`bg-white p-8 rounded-2xl shadow-sm border-2 transition-all relative group ${flagged.has(qId) ? 'border-orange-200' : 'border-transparent hover:border-indigo-100'
+                                className={`bg-white p-8 rounded-2xl shadow-sm border-2 transition-all relative group ${missing.has(qId)
+                                    ? 'border-red-500 shadow-lg shadow-red-50'
+                                    : flagged.has(qId)
+                                        ? 'border-orange-200'
+                                        : 'border-transparent hover:border-indigo-100'
                                     }`}
                             >
                                 <div className="flex justify-between items-start mb-6">
-                                    <span className={`text-sm font-bold px-3 py-1 rounded-full ${theme.text} bg-indigo-50`}>
-                                        Question {idx + 1}
-                                    </span>
+                                    <div className="flex flex-col gap-1">
+                                        <span className={`w-fit text-sm font-bold px-3 py-1 rounded-full ${theme.text} bg-indigo-50`}>
+                                            Question {idx + 1}
+                                        </span>
+                                        {missing.has(qId) && (
+                                            <span className="text-xs font-bold text-red-500 ml-1">
+                                                This question is required
+                                            </span>
+                                        )}
+                                    </div>
                                     <button
                                         onClick={() => toggleFlag(qId)}
                                         className={`transition-colors p-2 rounded-lg ${flagged.has(qId)
@@ -218,11 +278,13 @@ const FormView = () => {
                                     <button
                                         key={idx}
                                         onClick={() => scrollToQuestion(idx)}
-                                        className={`w-10 h-10 rounded-xl text-sm font-bold flex items-center justify-center transition-all relative ${isFlagged
-                                            ? 'bg-orange-50 text-orange-600 border-2 border-orange-200'
-                                            : isAnswered
-                                                ? 'bg-indigo-600 text-white'
-                                                : 'bg-gray-50 text-gray-400 border border-gray-100 hover:border-indigo-200'
+                                        className={`w-10 h-10 rounded-xl text-sm font-bold flex items-center justify-center transition-all relative ${missing.has(qId)
+                                            ? 'bg-red-50 text-red-600 border-2 border-red-200'
+                                            : isFlagged
+                                                ? 'bg-orange-50 text-orange-600 border-2 border-orange-200'
+                                                : isAnswered
+                                                    ? 'bg-indigo-600 text-white'
+                                                    : 'bg-gray-50 text-gray-400 border border-gray-100 hover:border-indigo-200'
                                             }`}
                                     >
                                         {idx + 1}
@@ -240,6 +302,10 @@ const FormView = () => {
                             <div className="flex items-center gap-3 text-xs text-gray-500">
                                 <div className="w-3 h-3 bg-indigo-600 rounded" />
                                 <span>Answered</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                                <div className="w-3 h-3 bg-red-50 border border-red-200 rounded" />
+                                <span>Required/Missing</span>
                             </div>
                             <div className="flex items-center gap-3 text-xs text-gray-500">
                                 <div className="w-3 h-3 bg-orange-50 border border-orange-200 rounded" />

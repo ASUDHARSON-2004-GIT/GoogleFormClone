@@ -17,6 +17,34 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ message: 'Form not found' });
         }
 
+        // Validate required questions
+        const missingRequired = form.questions.filter(q => {
+            if (!q.required) return false;
+
+            // Find if this question has an answer in the request
+            const answerObj = answers.find(a => a.questionId === q._id.toString() || a.questionId === q.id);
+
+            // Check if answer is present and not empty
+            if (!answerObj || answerObj.answer === undefined || answerObj.answer === null) return true;
+
+            if (typeof answerObj.answer === 'string') {
+                return answerObj.answer.trim() === '';
+            }
+
+            if (Array.isArray(answerObj.answer)) {
+                return answerObj.answer.length === 0;
+            }
+
+            return false;
+        });
+
+        if (missingRequired.length > 0) {
+            return res.status(400).json({
+                message: 'Please answer all required questions',
+                missingFields: missingRequired.map(q => q._id || q.id)
+            });
+        }
+
         const response = await Response.create({
             formId,
             answers
