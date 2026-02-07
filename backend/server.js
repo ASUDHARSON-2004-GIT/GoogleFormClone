@@ -8,14 +8,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(express.json());
-
 // Enhanced CORS configuration
 const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
+    "https://googleformclone-frontend.onrender.com",
     process.env.CLIENT_URL
 ].filter(Boolean);
 
@@ -32,6 +30,9 @@ app.use(cors({
     },
     credentials: true
 }));
+
+// Middleware
+app.use(express.json());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/formbuilder')
