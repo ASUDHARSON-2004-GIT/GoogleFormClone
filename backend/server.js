@@ -38,13 +38,25 @@ app.use(express.json());
 const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/formbuilder';
 console.log('Attempting to connect to MongoDB...');
 
-mongoose.connect(mongoURI)
-    .then(() => console.log('✅ MongoDB Connected Successfully'))
-    .catch(err => {
-        console.error('❌ MongoDB Connection Error:');
-        console.error(err.message);
-        // On Render, we want to know if it's a timeout or auth fail
-    });
+const connectDB = async () => {
+    try {
+        console.log('Targeting database: GoogleFormClone');
+        await mongoose.connect(mongoURI, {
+            dbName: 'GoogleFormClone',
+            serverSelectionTimeoutMS: 5000
+        });
+        console.log('✅ MongoDB Connected Successfully');
+    } catch (err) {
+        console.error('❌ MongoDB Connection Error details:');
+        console.error('Message:', err.message);
+        console.error('Code:', err.code);
+        if (err.message.includes('QUERY_METADATA_TIMEOUT') || err.message.includes('timeout')) {
+            console.log('Hint: Check if your MongoDB Atlas IP Whitelist allows access (0.0.0.0/0).');
+        }
+    }
+};
+
+connectDB();
 
 // Monitor connection
 mongoose.connection.on('error', err => {
