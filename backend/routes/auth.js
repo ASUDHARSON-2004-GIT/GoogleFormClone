@@ -11,27 +11,32 @@ const generateToken = (id) => {
 // @route POST /api/auth/register
 // @access Public
 router.post('/register', async (req, res) => {
-    const { email, password } = req.body;
+    try {
+        const { email, password } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Please add all fields' });
-    }
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Please add all fields' });
+        }
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-        return res.status(400).json({ message: 'User already exists' });
-    }
+        const userExists = await User.findOne({ email });
+        if (userExists) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
 
-    const user = await User.create({ email, password });
+        const user = await User.create({ email, password });
 
-    if (user) {
-        res.status(201).json({
-            _id: user.id,
-            email: user.email,
-            token: generateToken(user.id)
-        });
-    } else {
-        res.status(400).json({ message: 'Invalid user data' });
+        if (user) {
+            res.status(201).json({
+                _id: user.id,
+                email: user.email,
+                token: generateToken(user.id)
+            });
+        } else {
+            res.status(400).json({ message: 'Invalid user data' });
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ message: 'Server error during registration', error: error.message });
     }
 });
 
@@ -39,18 +44,23 @@ router.post('/register', async (req, res) => {
 // @route POST /api/auth/login
 // @access Public
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    try {
+        const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+        const user = await User.findOne({ email });
 
-    if (user && (await user.matchPassword(password))) {
-        res.json({
-            _id: user.id,
-            email: user.email,
-            token: generateToken(user.id)
-        });
-    } else {
-        res.status(401).json({ message: 'Invalid credentials' });
+        if (user && (await user.matchPassword(password))) {
+            res.json({
+                _id: user.id,
+                email: user.email,
+                token: generateToken(user.id)
+            });
+        } else {
+            res.status(401).json({ message: 'Invalid credentials' });
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'Server error during login', error: error.message });
     }
 });
 

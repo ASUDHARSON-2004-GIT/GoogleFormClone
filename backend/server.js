@@ -35,9 +35,25 @@ app.use(cors({
 app.use(express.json());
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/formbuilder')
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
+const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/formbuilder';
+console.log('Attempting to connect to MongoDB...');
+
+mongoose.connect(mongoURI)
+    .then(() => console.log('✅ MongoDB Connected Successfully'))
+    .catch(err => {
+        console.error('❌ MongoDB Connection Error:');
+        console.error(err.message);
+        // On Render, we want to know if it's a timeout or auth fail
+    });
+
+// Monitor connection
+mongoose.connection.on('error', err => {
+    console.error('Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.log('Mongoose disconnected');
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
