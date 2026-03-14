@@ -101,6 +101,7 @@ const FormView = () => {
     const submitForm = async () => {
         if (!validateForm()) return;
 
+        setLoading(true);
         try {
             const answersArray = Object.keys(answers).map(key => ({
                 questionId: key,
@@ -113,13 +114,15 @@ const FormView = () => {
             });
             setSubmitted(true);
         } catch (error) {
-            console.error(error);
+            console.error('Submission error:', error);
             if (error.response?.data?.missingFields) {
                 setMissing(new Set(error.response.data.missingFields));
-                alert('Please fill out all required fields.');
+                alert('Please answer all required questions.');
             } else {
                 alert('Failed to submit. Please check your connection.');
             }
+        } finally {
+            setLoading(false);
         }
     };
 

@@ -8,28 +8,25 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enhanced CORS configuration
-const allowedOrigins = [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
-    "https://google-form-clone-black.vercel.app",
-    process.env.CLIENT_URL
-].filter(Boolean);
-
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
-            callback(null, true);
-        } else {
-            console.log("Blocked by CORS:", origin);
-            callback(new Error('Not allowed by CORS'));
+
+        // allow localhost
+        if (origin.startsWith("http://localhost")) {
+            return callback(null, true);
         }
+
+        // allow any vercel deployment
+        if (origin.includes("vercel.app")) {
+            return callback(null, true);
+        }
+
+        callback(new Error("Not allowed by CORS"));
     },
     credentials: true
 }));
+
 
 // Middleware
 app.use(express.json());

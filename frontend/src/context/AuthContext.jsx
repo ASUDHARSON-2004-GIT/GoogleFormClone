@@ -28,16 +28,16 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         const res = await api.post("/auth/login", { email, password });
         localStorage.setItem("token", res.data.token);
-        localStorage.setItem("user", JSON.stringify({ _id: res.data._id, email: res.data.email }));
-        setUser({ _id: res.data._id, email: res.data.email });
+        localStorage.setItem("user", JSON.stringify({ _id: res.data._id, email: res.data.email, name: res.data.name }));
+        setUser({ _id: res.data._id, email: res.data.email, name: res.data.name });
         return res.data;
     };
 
     const register = async (email, password) => {
         const res = await api.post("/auth/register", { email, password });
         localStorage.setItem("token", res.data.token);
-        localStorage.setItem("user", JSON.stringify({ _id: res.data._id, email: res.data.email }));
-        setUser({ _id: res.data._id, email: res.data.email });
+        localStorage.setItem("user", JSON.stringify({ _id: res.data._id, email: res.data.email, name: res.data.name }));
+        setUser({ _id: res.data._id, email: res.data.email, name: res.data.name });
         return res.data;
     };
 
@@ -47,8 +47,16 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    const updateProfile = async (data) => {
+        const res = await api.put("/auth/profile", data);
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user", JSON.stringify({ _id: res.data._id, email: res.data.email, name: res.data.name }));
+        setUser({ _id: res.data._id, email: res.data.email, name: res.data.name });
+        return res.data;
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, updateProfile, loading }}>
             {children}
         </AuthContext.Provider>
     );

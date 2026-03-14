@@ -189,18 +189,22 @@ const FormBuilder = () => {
     };
 
     const saveForm = async () => {
+        setLoading(true);
         try {
             const payload = {
                 title,
                 description,
-                questions,
+                questions: questions.map(({ id, ...q }) => ({ ...q, id: id || q._id })),
                 theme
             };
             await api.put(`/forms/${id}`, payload);
-            alert('Form saved successfully!');
+            setCopied(true); // Temporary visual feedback
+            setTimeout(() => setCopied(false), 2000);
         } catch (error) {
             console.error(error);
-            alert('Failed to save form');
+            alert('Failed to save form. If the problem persists, try logging out and back in.');
+        } finally {
+            setLoading(false);
         }
     };
 
